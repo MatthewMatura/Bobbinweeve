@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WNBA 2026 — Rest &amp; Travel Board</title>
+<style>
+  :root{
+    --ink:#0e131b; --panel:#151d29; --panel2:#111823; --line:#25313f;
+    --text:#e7edf4; --dim:#8b98aa; --faint:#5c6a7c;
+    --cyan:#5bc8d6; --amber:#e8a13a; --red:#e5695a; --green:#5fbf87;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --disp:"Helvetica Neue",-apple-system,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--mono);-webkit-text-size-adjust:100%}
+  body{padding:0 0 60px;max-width:1180px;margin:0 auto}
+  a{color:var(--cyan)}
+  header{padding:22px 18px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:linear-gradient(180deg,var(--ink) 82%,transparent);z-index:5}
+  .brand{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;font-size:26px;line-height:1}
+  .brand small{display:block;font-family:var(--mono);font-weight:400;letter-spacing:.14em;font-size:10px;color:var(--dim);margin-top:7px;text-transform:uppercase}
+  .status{font-size:11px;color:var(--dim);margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .status b{color:var(--text);font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block;margin-right:5px;vertical-align:middle}
+  .dot.on{background:var(--green)} .dot.err{background:var(--red)}
+  button,select{font-family:var(--mono);font-size:12px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 11px;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  .btn-accent{background:#1b2a33;border-color:#2f4a55;color:var(--cyan)}
+  .controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:14px 18px 6px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;border-radius:0;background:transparent;padding:8px 14px;color:var(--dim)}
+  .seg button.active{background:var(--panel);color:var(--text)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:10.5px;color:var(--dim);padding:8px 18px 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .chip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.02em}
+  .chip.b2b{background:rgba(232,161,58,.15);color:var(--amber);border:1px solid rgba(232,161,58,.35)}
+  .chip.haul{background:rgba(91,200,214,.13);color:var(--cyan);border:1px solid rgba(91,200,214,.32)}
+  .chip.tz{background:rgba(229,105,90,.14);color:var(--red);border:1px solid rgba(229,105,90,.33)}
+  .chip.dense{background:rgba(95,191,135,.13);color:var(--green);border:1px solid rgba(95,191,135,.3)}
+  .msg{padding:26px 18px;color:var(--dim);font-size:13px;line-height:1.6}
+  .msg code{background:var(--panel2);padding:2px 6px;border-radius:4px;color:var(--cyan);font-size:11.5px;word-break:break-all}
+
+  /* League board */
+  .day-h{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--dim);padding:16px 18px 6px;text-transform:uppercase}
+  .game{display:grid;grid-template-columns:1fr 60px 1fr;gap:8px;align-items:center;margin:0 12px 8px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+  .side{min-width:0}
+  .side.home{text-align:right}
+  .tm{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{font-size:10.5px;color:var(--dim);margin-top:5px;display:flex;gap:7px;flex-wrap:wrap}
+  .side.home .meta{justify-content:flex-end}
+  .vs{text-align:center;font-size:10px;color:var(--faint);letter-spacing:.1em}
+  .vs .edge{display:block;margin-top:5px;font-family:var(--disp);font-weight:800;font-size:15px}
+  .edge.pos{color:var(--green)} .edge.neg{color:var(--red)} .edge.zero{color:var(--faint)}
+  .rest{font-family:var(--mono);color:var(--text)}
+  .rest.b2b{color:var(--amber);font-weight:600}
+
+  /* Team focus */
+  .tf-head{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:baseline;padding:16px 18px 4px}
+  .tf-head h2{font-family:var(--disp);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em}
+  .tf-stat{font-size:11px;color:var(--dim)} .tf-stat b{color:var(--text);font-size:15px;font-family:var(--disp)}
+  .leg{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;margin:0 12px 6px;padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;border-left-width:3px}
+  .leg.sev1{border-left-color:var(--amber)} .leg.sev2{border-left-color:var(--red)} .leg.sev0{border-left-color:var(--line)}
+  .leg .dt{font-size:11px;color:var(--dim);line-height:1.35}
+  .leg .dt b{color:var(--text);font-family:var(--disp);font-size:14px;display:block}
+  .leg .opp{font-size:13px}
+  .leg .opp .ha{color:var(--faint);font-size:11px;margin-right:5px}
+  .leg .flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .leg .num{text-align:right;font-size:11px;color:var(--dim);white-space:nowrap;line-height:1.5}
+  .leg .num b{color:var(--text)}
+  .bar{height:3px;background:var(--line);border-radius:2px;margin-top:7px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--cyan)}
+  footer{padding:20px 18px;color:var(--faint);font-size:10.5px;line-height:1.7;border-top:1px solid var(--line);margin-top:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">REST &amp; TRAVEL BOARD<small>WNBA 2026 · schedule logistics · fatigue edge</small></div>
+  <div class="status">
+    <span><span class="dot" id="dot"></span><span id="statusText">Idle</span></span>
+    <span id="updated"></span>
+    <button class="btn-accent" id="refresh" style="margin-left:auto">↻ Refresh data</button>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="seg" id="viewSeg">
+    <button data-view="league" class="active">League board</button>
+    <button data-view="team">Team focus</button>
+  </div>
+  <select id="teamSel" style="display:none"></select>
+  <select id="rangeSel">
+    <option value="next">Upcoming (next 21 days)</option>
+    <option value="week">Next 7 days</option>
+    <option value="all">Full season</option>
+  </select>
+  <label style="font-size:11px;color:var(--dim);display:inline-flex;align-items:center;gap:6px">
+    <input type="checkbox" id="onlyEdge"> mismatches only
+  </label>
+</div>
+
+<div class="legend">
+  <span><span class="chip b2b">B2B</span> back-to-back (0 days rest)</span>
+  <span><span class="chip haul">HAUL</span> flight &gt; 1500 mi</span>
+  <span><span class="chip tz">TZ⇄</span> time zones crossed</span>
+  <span><span class="chip dense">3-in-4</span> compressed stretch</span>
+</div>
+
+<div id="app"><div class="msg">Loading the 2026 schedule…</div></div>
+
+<footer>
+  Data: ESPN public endpoints (unofficial, no key). Computed client-side; cached locally 12h. Rest = calendar days between a team's games minus one. Travel = great-circle miles between arena cities; season opener assumes the team starts at home. Time zones use real summer UTC offsets — Phoenix (MST, no DST) reads as Pacific in-season. Distances/rest are schedule facts; nothing here is a prediction.
+</footer>
+
+<script>
+/* ---------- team reference (keyed by nickname; matched at runtime) ---------- */
+const TEAMS = {
+  Dream:{city:"Atlanta",lat:33.749,lng:-84.388,off:-4,tz:"ET"},
+  Sky:{city:"Chicago",lat:41.878,lng:-87.629,off:-5,tz:"CT"},
+  Sun:{city:"Uncasville",lat:41.490,lng:-72.093,off:-4,tz:"ET"},
+  Wings:{city:"Arlington",lat:32.735,lng:-97.108,off:-5,tz:"CT"},
+  Valkyries:{city:"San Francisco",lat:37.768,lng:-122.388,off:-7,tz:"PT"},
+  Fever:{city:"Indianapolis",lat:39.764,lng:-86.155,off:-4,tz:"ET"},
+  Aces:{city:"Las Vegas",lat:36.090,lng:-115.176,off:-7,tz:"PT"},
+  Sparks:{city:"Los Angeles",lat:34.043,lng:-118.267,off:-7,tz:"PT"},
+  Lynx:{city:"Minneapolis",lat:44.979,lng:-93.276,off:-5,tz:"CT"},
+  Liberty:{city:"Brooklyn",lat:40.683,lng:-73.976,off:-4,tz:"ET"},
+  Mercury:{city:"Phoenix",lat:33.446,lng:-112.071,off:-7,tz:"MST"},
+  Storm:{city:"Seattle",lat:47.622,lng:-122.354,off:-7,tz:"PT"},
+  Mystics:{city:"Washington",lat:38.865,lng:-76.978,off:-4,tz:"ET"},
+  Tempo:{city:"Toronto",lat:43.634,lng:-79.416,off:-4,tz:"ET"},
+  Fire:{city:"Portland",lat:45.532,lng:-122.667,off:-7,tz:"PT"}
+};
+const NICKS = Object.keys(TEAMS);
+function nickFrom(str){
+  if(!str) return null;
+  for(const n of NICKS){ if(str.includes(n)) return n; }
+  return null;
+}
+const HAUL_MI = 1500, LONG_MI = 1000;
+const CACHE_KEY = "wnba_logistics_2026_v1", TTL = 12*3600*1000;
+const BASE = "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba";
+
+/* ---------- geo / date helpers ---------- */
+function haversine(a,b){
+  const R=3958.8, tr=Math.PI/180;
+  const dLat=(b.lat-a.lat)*tr, dLng=(b.lng-a.lng)*tr;
+  const s=Math.sin(dLat/2)**2 + Math.cos(a.lat*tr)*Math.cos(b.lat*tr)*Math.sin(dLng/2)**2;
+  return Math.round(2*R*Math.asin(Math.sqrt(s)));
+}
+function ymd(d){ return d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate(); }
+function dayNum(iso){ // integer calendar-day index (UTC) for diffing
+  const d=new Date(iso); return Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())/86400000);
+}
+function fmtDate(iso){
+  return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+}
+function dayKey(iso){
+  return new Date(iso).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+}
+
+/* ---------- fetch ---------- */
+async function getJSON(url){
+  const r = await fetch(url,{headers:{"Accept":"application/json"}});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+async function loadSchedule(force){
+  const cached = safeCache();
+  if(!force && cached) return cached;
+  setStatus("loading","Discovering teams…");
+  const teamsData = await getJSON(BASE+"/teams");
+  const list = (((teamsData.sports||[])[0]||{}).leagues||[])[0]?.teams || [];
+  const ids = [];
+  for(const t of list){
+    const T=t.team||{};
+    const nk = nickFrom(T.displayName)||nickFrom(T.name)||nickFrom(T.shortDisplayName)||nickFrom(T.location);
+    if(nk && T.id) ids.push({id:T.id,nick:nk});
+  }
+  if(!ids.length) throw new Error("No teams matched reference table");
+  const seen={}, games=[];
+  let done=0;
+  for(const {id,nick} of ids){
+    setStatus("loading","Loading schedules… "+(++done)+"/"+ids.length);
+    let sd;
+    try{ sd = await getJSON(BASE+"/teams/"+id+"/schedule"); }
+    catch(e){ continue; }
+    for(const ev of (sd.events||[])){
+      if(seen[ev.id]) continue;
+      const comp=(ev.competitions||[])[0]; if(!comp) continue;
+      const cs=comp.competitors||[]; if(cs.length<2) continue;
+      let home=null,away=null;
+      for(const c of cs){
+        const nk=nickFrom((c.team||{}).displayName)||nickFrom((c.team||{}).name)||nickFrom((c.team||{}).location);
+        if(!nk) continue;
+        if(c.homeAway==="home") home=nk; else if(c.homeAway==="away") away=nk;
+      }
+      if(!home||!away||!TEAMS[home]||!TEAMS[away]) continue;
+      const stype = ev.season?.type ?? comp.type?.id;
+      seen[ev.id]=1;
+      games.push({id:ev.id,date:ev.date,home,away,stype});
+    }
+  }
+  games.sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const payload={games,ts:Date.now()};
+  try{ localStorage.setItem(CACHE_KEY,JSON.stringify(payload)); }catch(e){}
+  return payload;
+}
+function safeCache(){
+  try{
+    const raw=localStorage.getItem(CACHE_KEY); if(!raw) return null;
+    const p=JSON.parse(raw);
+    if(!p.games||!p.games.length) return null;
+    if(Date.now()-p.ts>TTL) return {...p,stale:true};
+    return p;
+  }catch(e){ return null; }
+}
+
+/* ---------- compute per-team legs ---------- */
+function buildLegs(games){
+  const byTeam={};
+  for(const n of NICKS) byTeam[n]=[];
+  // a game contributes a "leg" to both teams (the venue = home city)
+  for(const g of games){
+    byTeam[g.home].push({g,side:"home",cityNick:g.home,opp:g.away});
+    byTeam[g.away].push({g,side:"away",cityNick:g.home,opp:g.home});
+  }
+  const legIndex={}; // gameId -> {home:legStats, away:legStats}
+  for(const n of NICKS){
+    const legs=byTeam[n].sort((a,b)=> new Date(a.g.date)-new Date(b.g.date));
+    let prevCity=n, prevDay=null;
+    const dayList=legs.map(l=>dayNum(l.g.date));
+    legs.forEach((l,i)=>{
+      const dn=dayList[i];
+      const rest = prevDay===null ? null : (dn-prevDay-1);
+      const miles = haversine(TEAMS[prevCity],TEAMS[l.cityNick]);
+      const tz = Math.abs(TEAMS[prevCity].off - TEAMS[l.cityNick].off);
+      const eastward = TEAMS[l.cityNick].off > TEAMS[prevCity].off; // moving to smaller-magnitude offset = east
+      // density: games within trailing 4 and 6 day windows (inclusive)
+      let in4=0,in6=0;
+      for(let j=0;j<=i;j++){ const d=dayList[j]; if(dn-d<4) in4++; if(dn-d<6) in6++; }
+      const b2b = rest===0;
+      const haul = miles>=HAUL_MI;
+      let sev=0;
+      if(b2b) sev+=2;
+      if(haul) sev+=2; else if(miles>=LONG_MI) sev+=1;
+      if(tz>=2) sev+=2; else if(tz===1) sev+=1;
+      if(eastward && tz>=1) sev+=1;
+      if(in4>=3) sev+=1;
+      if(in6>=4) sev+=1;
+      const stats={rest,miles,tz,eastward,b2b,haul,in4,in6,sev,side:l.side,opp:l.opp,cityNick:l.cityNick};
+      l.stats=stats;
+      legIndex[l.g.id]=legIndex[l.g.id]||{};
+      legIndex[l.g.id][l.side]=stats;
+      prevCity=l.cityNick; prevDay=dn;
+    });
+  }
+  return {byTeam,legIndex};
+}
+
+/* ---------- rendering ---------- */
+const app=document.getElementById("app");
+let STATE={view:"league",team:null,range:"next",onlyEdge:false,data:null,legs:null};
+
+function restLabel(r){ return r===null?"opener":r===0?"B2B":r+"d rest"; }
+function flagsFor(s){
+  const out=[];
+  if(s.b2b) out.push('<span class="chip b2b">B2B</span>');
+  if(s.haul) out.push('<span class="chip haul">'+s.miles+' mi</span>');
+  else if(s.miles>=LONG_MI) out.push('<span class="chip haul">'+s.miles+' mi</span>');
+  if(s.tz>=1) out.push('<span class="chip tz">'+ (s.eastward?"E":"W") +' '+s.tz+' TZ</span>');
+  if(s.in4>=3) out.push('<span class="chip dense">3-in-4</span>');
+  else if(s.in6>=4) out.push('<span class="chip dense">4-in-6</span>');
+  return out.join(" ");
+}
+
+function inRange(iso){
+  const today=dayNum(new Date().toISOString());
+  const d=dayNum(iso);
+  if(STATE.range==="week") return d>=today && d<=today+7;
+  if(STATE.range==="next") return d>=today && d<=today+21;
+  return true;
+}
+
+function renderLeague(){
+  const {games}=STATE.data, {legIndex}=STATE.legs;
+  const rows=games.filter(g=>inRange(g.date));
+  if(!rows.length){ app.innerHTML='<div class="msg">No games in this window. Try “Full season”.</div>'; return; }
+  let html="", curDay="";
+  let shown=0;
+  for(const g of rows){
+    const li=legIndex[g.id]||{};
+    const hs=li.home, as=li.away;
+    const hr = hs? (hs.rest===null?99:hs.rest):99;
+    const ar = as? (as.rest===null?99:as.rest):99;
+    const edge = (hr===99||ar===99)?null:(hr-ar); // + = home more rested
+    if(STATE.onlyEdge && (edge===null || Math.abs(edge)<1 && !(hs&&hs.b2b) && !(as&&as.b2b))) continue;
+    const dk=dayKey(g.date);
+    if(dk!==curDay){ curDay=dk; html+='<div class="day-h">'+dk+'</div>'; }
+    const awayMeta = as? '<span class="rest '+(as.b2b?'b2b':'')+'">'+restLabel(as.rest)+'</span> '+flagsFor(as) : '';
+    const homeMeta = hs? flagsFor(hs)+' <span class="rest '+(hs.b2b?'b2b':'')+'">'+restLabel(hs.rest)+'</span>' : '';
+    let edgeHtml='<span class="edge zero">—</span>';
+    if(edge!==null){
+      if(edge>0) edgeHtml='<span class="edge pos" title="Home more rested">+'+edge+'</span>';
+      else if(edge<0) edgeHtml='<span class="edge neg" title="Away more rested">'+edge+'</span>';
+    }
+    html+='<div class="game">'
+      +'<div class="side away"><div class="tm">'+g.away+'</div><div class="meta">'+awayMeta+'</div></div>'
+      +'<div class="vs">@'+edgeHtml+'</div>'
+      +'<div class="side home"><div class="tm">'+g.home+'</div><div class="meta">'+homeMeta+'</div></div>'
+      +'</div>';
+    shown++;
+  }
+  if(!shown){ app.innerHTML='<div class="msg">No rest mismatches in this window. Uncheck “mismatches only”.</div>'; return; }
+  app.innerHTML=html;
+}
+
+function renderTeam(){
+  const nk=STATE.team; const legs=STATE.legs.byTeam[nk]||[];
+  const rows=legs.filter(l=>inRange(l.g.date));
+  const totMiles=legs.reduce((s,l)=>s+(l.stats.miles||0),0);
+  const b2bs=legs.filter(l=>l.stats.b2b).length;
+  const hauls=legs.filter(l=>l.stats.haul).length;
+  const played=legs.filter(l=>dayNum(l.g.date)<dayNum(new Date().toISOString())).length;
+  let html='<div class="tf-head"><h2>'+nk+' <span style="color:var(--dim);font-weight:400;font-size:13px">'+TEAMS[nk].city+' · '+TEAMS[nk].tz+'</span></h2>'
+    +'<span class="tf-stat"><b>'+totMiles.toLocaleString()+'</b> season miles</span>'
+    +'<span class="tf-stat"><b>'+b2bs+'</b> back-to-backs</span>'
+    +'<span class="tf-stat"><b>'+hauls+'</b> long hauls</span>'
+    +'<span class="tf-stat"><b>'+legs.length+'</b> games · '+played+' played</span></div>';
+  if(!rows.length){ html+='<div class="msg">No games in this window.</div>'; app.innerHTML=html; return; }
+  const maxMi=Math.max(1,...rows.map(l=>l.stats.miles));
+  for(const l of rows){
+    const s=l.stats;
+    const sev = s.sev>=4?2 : s.sev>=2?1 : 0;
+    html+='<div class="leg sev'+sev+'">'
+      +'<div class="dt"><b>'+fmtDate(l.g.date)+'</b>'+restLabel(s.rest)+'</div>'
+      +'<div><div class="opp"><span class="ha">'+(s.side==="home"?"vs":"@")+'</span>'+s.opp+'</div>'
+        +'<div class="flags">'+(flagsFor(s)||'<span style="color:var(--faint);font-size:10px">clean</span>')+'</div>'
+        +'<div class="bar"><i style="width:'+Math.round(s.miles/maxMi*100)+'%"></i></div></div>'
+      +'<div class="num"><b>'+s.miles.toLocaleString()+'</b> mi<br>'+(s.tz?((s.eastward?'E':'W')+' '+s.tz+' TZ'):'same TZ')+'</div>'
+      +'</div>';
+  }
+  app.innerHTML=html;
+}
+
+function render(){
+  if(!STATE.data){ return; }
+  if(STATE.view==="team" && STATE.team) renderTeam();
+  else renderLeague();
+}
+
+/* ---------- status + wiring ---------- */
+function setStatus(kind,text){
+  const dot=document.getElementById("dot"), st=document.getElementById("statusText");
+  dot.className="dot"+(kind==="ok"?" on":kind==="err"?" err":"");
+  st.textContent=text;
+}
+function setUpdated(ts,stale){
+  const el=document.getElementById("updated");
+  if(!ts){ el.textContent=""; return; }
+  el.innerHTML='Updated <b>'+new Date(ts).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+'</b>'+(stale?' · stale':'');
+}
+
+async function boot(force){
+  try{
+    setStatus("loading","Loading…");
+    const data=await loadSchedule(force);
+    STATE.data=data;
+    STATE.legs=buildLegs(data.games);
+    setStatus("ok",data.games.length+" games loaded");
+    setUpdated(data.ts,data.stale);
+    render();
+  }catch(e){
+    setStatus("err","Couldn't load data");
+    setUpdated(null);
+    app.innerHTML='<div class="msg"><b style="color:var(--red)">Data fetch failed.</b><br><br>'
+      +'This board pulls live from ESPN in your browser, so it needs an internet connection and works best on a hosted page (e.g. your GitHub Pages URL) rather than opened from a chat sandbox. Error: <code>'+(e.message||e)+'</code><br><br>'
+      +'Endpoint used: <code>'+BASE+'/teams</code><br>If this persists on your own hosted copy, ESPN may have changed the response shape — tell me and I\'ll adjust the parser.</div>';
+  }
+}
+
+// team selector
+const teamSel=document.getElementById("teamSel");
+NICKS.slice().sort().forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; teamSel.appendChild(o); });
+STATE.team=teamSel.value=NICKS.slice().sort()[0];
+teamSel.onchange=()=>{ STATE.team=teamSel.value; render(); };
+
+// view toggle
+document.getElementById("viewSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-view]"); if(!b) return;
+  STATE.view=b.dataset.view;
+  document.querySelectorAll("#viewSeg button").forEach(x=>x.classList.toggle("active",x===b));
+  teamSel.style.display = STATE.view==="team"?"inline-block":"none";
+  document.getElementById("onlyEdge").parentElement.style.display = STATE.view==="league"?"inline-flex":"none";
+  render();
+});
+document.getElementById("rangeSel").onchange=e=>{ STATE.range=e.target.value; render(); };
+document.getElementById("onlyEdge").onchange=e=>{ STATE.onlyEdge=e.target.checked; render(); };
+document.getElementById("refresh").onclick=()=>boot(true);
+
+boot(false);
+</script>
+</body>
+</html>
